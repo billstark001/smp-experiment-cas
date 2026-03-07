@@ -23,9 +23,41 @@ python run_experiments.py --concurrency 8 --max-step 2000
 
 支持断点续跑（已完成的跳过），结果写入 `./run/<UniqueName>/`。
 
-## TODO（待实现的指标，在 run_experiments.py 中已注释）
+## 统计指标计算（stat_utils.py）
 
-- 平均对数收敛时间
-- 最终意见簇数量（Leiden 社区检测）
-- 方差 / 磁化率
-- 闭合三角形数量
+提供以下工具函数，可独立调用，也可通过 `compute_all_stats()` 一次性获取：
+
+| 函数 | 返回值 | 说明 |
+|------|--------|------|
+| `get_triads_stats(A)` | `(n_triads, A_triads)` | 有向闭合三角形数量及矩阵 |
+| `get_last_community_count(record)` | `(count, sizes_json)` | Leiden 社区数量及各社区大小（JSON） |
+| `get_opinion_stats(record)` | `(variance, magnetization)` | 最终意见方差 / 绝对均值（磁化率） |
+| `get_convergence_step(record)` | `int` | 意见收敛步数（最大单步变化首次低于 ε=1e-4） |
+| `compute_all_stats(record)` | `dict` | 聚合所有指标，返回可 msgpack 序列化的字典 |
+
+`compute_all_stats` 返回字段：
+
+```
+convergence_step        int     – 意见收敛步数
+log_convergence_time    float   – log1p(convergence_step)
+final_variance          float   – 最终步意见方差
+final_magnetization     float   – 最终步 |mean opinion|（磁化率）
+n_closed_triangles      int     – 最终图中有向闭合三角形数量
+community_count         int     – Leiden 社区数量
+community_sizes         str     – JSON {community_id: size}
+```
+
+## 统计批量采集（run_stats.py）
+
+```bash
+python run_stats.py                          # 处理全部已完成模拟（默认并发 4）
+python run_stats.py --concurrency 8          # 指定并发数
+python run_stats.py --db-path ./my.lmdb      # 指定输出数据库路径
+python run_stats.py --force                  # 强制重算已存储条目
+```
+
+结果写入 LMDB 数据库（默认 `./run/stats.lmdb`）：
+
+- **key**：场景 `UniqueName`（UTF-8 字节串）
+- **value**：msgpack 编码的 `compute_all_stats` 字典
+- 支持增量更新，已存储条目默认跳过

@@ -20,11 +20,11 @@ Each completed simulation directory contains:
   events.db               — SQLite event log (post / rewiring events)
   finished-*              — marker file written on clean completion
 
-TODO (metrics — implemented separately in analyse.py)
+Metrics
 ------------------------------------------------------
 - Average log-convergence time
 - Final opinion cluster count (Leiden community detection)
-- Opinion variance / magnetisation
+- Opinion variance / magnetization
 - Number of closed triangles in the final graph
 """
 
@@ -36,6 +36,7 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # ── Locate the smp_bindings package ──────────────────────────────────────────
@@ -44,30 +45,43 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from smp_bindings import run_simulations, is_simulation_finished  # type: ignore # noqa: E402
-from scenarios import generate_scenarios, print_summary            # noqa: E402
+from scenarios import generate_scenarios, print_summary  # noqa: E402
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _default_binary = _REPO_ROOT / "smp"
-_default_base   = Path(__file__).resolve().parent / "run"
+_default_base = Path(__file__).resolve().parent / "run"
 
-BINARY_PATH = str(Path(os.path.expanduser(os.environ["SMP_BINARY_PATH"])).resolve()) \
-    if "SMP_BINARY_PATH" in os.environ else str(_default_binary)
-BASE_PATH   = str(Path(os.path.expanduser(os.environ["SMP_BASE_PATH"])).resolve()) \
-    if "SMP_BASE_PATH" in os.environ else str(_default_base)
+BINARY_PATH = (
+    str(Path(os.path.expanduser(os.environ["SMP_BINARY_PATH"])).resolve())
+    if "SMP_BINARY_PATH" in os.environ
+    else str(_default_binary)
+)
+BASE_PATH = (
+    str(Path(os.path.expanduser(os.environ["SMP_BASE_PATH"])).resolve())
+    if "SMP_BASE_PATH" in os.environ
+    else str(_default_base)
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run SMP experiment simulations.")
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Print scenario summary only; do not launch any processes.",
     )
     parser.add_argument(
-        "--concurrency", type=int, default=4, metavar="N",
+        "--concurrency",
+        type=int,
+        default=4,
+        metavar="N",
         help="Maximum number of parallel simulations (default: 4).",
     )
     parser.add_argument(
-        "--max-step", type=int, default=None, metavar="S",
+        "--max-step",
+        type=int,
+        default=None,
+        metavar="S",
         help="Override MaxSimulationStep for every scenario.",
     )
     args = parser.parse_args()
@@ -81,9 +95,7 @@ def main() -> None:
 
     # Summary
     print_summary()
-    already_done = sum(
-        1 for s in scenarios if is_simulation_finished(BASE_PATH, s)
-    )
+    already_done = sum(1 for s in scenarios if is_simulation_finished(BASE_PATH, s))
     print(f"Already finished: {already_done} / {len(scenarios)}")
 
     if args.dry_run:
@@ -107,14 +119,12 @@ def main() -> None:
         base_path=BASE_PATH,
         scenarios=scenarios,
         max_concurrent=args.concurrency,
-        show_progress=None,   # auto-detect TTY
+        show_progress=None,  # auto-detect TTY
         skip_finished=True,
     )
 
     print(f"\nDone. Ran {len(completed)} new simulation(s).")
-    total_finished = sum(
-        1 for s in scenarios if is_simulation_finished(BASE_PATH, s)
-    )
+    total_finished = sum(1 for s in scenarios if is_simulation_finished(BASE_PATH, s))
     print(f"Total finished  : {total_finished} / {len(scenarios)}")
 
 
