@@ -61,3 +61,45 @@ python run_stats.py --force                  # 强制重算已存储条目
 - **key**：场景 `UniqueName`（UTF-8 字节串）
 - **value**：msgpack 编码的 `compute_all_stats` 字典
 - 支持增量更新，已存储条目默认跳过
+
+## 绘图（gen_plots.py）
+
+| 文件名 | 内容 |
+|---|---|
+| `log_convergence_time.{fmt}` | 2×2 分组条形图（α/q 条件 × 转发率），按模型和推荐系统分组，含 ±1 SEM 误差棒 |
+| `final_variance.{fmt}` | 同上，指标换为最终意见方差 |
+| `final_magnetization.{fmt}` | 同上，指标换为最终磁化强度 |
+| `community_count.{fmt}` | 同上，指标换为社区数量 |
+| `recsys_delta.{fmt}` | Structure/Opinion 推荐系统相对 Random 基线的**相对变化（%）**，2×2 指标宫格 |
+| `condition_comparison.{fmt}` | 两行：α>q vs q>α 条件对比（上）、转发率对比（下），每指标一列 |
+| `summary_heatmap.{fmt}` | 列 z-score 归一化热图，行=（模型×推荐系统），列=（条件×转发率），标注原始均值 |
+
+**字体优先级**：`scienceplots` → Times New Roman → Times → Liberation Serif → CMU Serif → DejaVu Serif（回退）。
+
+运行方式：
+
+```bash
+python gen_plots.py                        # 默认 PDF，输出到 ./run/plots/
+python gen_plots.py --format png           # PNG 格式
+python gen_plots.py --db-path /path/to.lmdb --out-dir /path/to/out
+```
+
+## 环境变量
+
+所有脚本均通过 `python-dotenv` 自动读取项目根目录下的 `.env` 文件。
+命令行参数的优先级高于环境变量，环境变量的优先级高于代码内置默认值。
+
+复制 `.env.example` 为 `.env` 并按需修改：
+
+```bash
+cp .env.example .env
+```
+
+| 环境变量 | 适用脚本 | 默认值 | 说明 |
+|---|---|---|---|
+| `SMP_BINARY_PATH` | `run_experiments.py` | `../social-media-models/smp` | Go 仿真二进制文件路径，支持 `~` 展开 |
+| `SMP_BASE_PATH` | `run_experiments.py`<br>`run_stats.py` | `./run` | 仿真结果根目录，支持 `~` 展开 |
+| `SMP_DB_PATH` | `run_stats.py`<br>`gen_plots.py` | `$SMP_BASE_PATH/stats.lmdb` | LMDB 统计数据库目录，支持 `~` 展开 |
+| `SMP_PLOTS_PATH` | `gen_plots.py` | `$SMP_BASE_PATH/plots` | 图表输出目录，支持 `~` 展开 |
+
+> **注意**：`SMP_DB_PATH` 的代码内置默认值为 `./run/stats.lmdb`，不会动态跟随 `SMP_BASE_PATH` 变化；如需两者联动，请在 `.env` 中同时设置两个变量。

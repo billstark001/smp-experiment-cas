@@ -58,7 +58,11 @@ if str(_REPO_ROOT) not in sys.path:
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _default_base = Path(__file__).resolve().parent / "run"
-_default_db = _default_base / "stats.lmdb"
+_default_db = (
+    Path(os.path.expanduser(os.environ["SMP_DB_PATH"])).resolve()
+    if "SMP_DB_PATH" in os.environ
+    else _default_base / "stats.lmdb"
+)
 
 BASE_PATH = (
     str(Path(os.path.expanduser(os.environ["SMP_BASE_PATH"])).resolve())
