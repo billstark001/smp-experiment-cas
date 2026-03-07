@@ -5,6 +5,7 @@ import json
 from collections import Counter
 
 import numpy as np
+import scipy.sparse as sp
 import igraph as ig
 import leidenalg
 import networkx as nx
@@ -15,29 +16,35 @@ from smp_bindings import RawSimulationRecord  # type: ignore
 
 def get_triads_stats(A: NDArray):
     # counts the number of A->B, B->C, A->C triads in the graph represented by adjacency matrix A
-    A2 = A @ A
-    A_triads = np.copy(A2)
-    A_triads[A == 0] = 0
-    n_triads = np.sum(A_triads)
+    # Use sparse matrix multiplication to avoid O(N³) dense matmul — critical for large graphs.
+    S = sp.csr_matrix(A)
+    S2 = S @ S  # sparse: 2-path counts
+    # closed triads: positions where both A[i,j] and A²[i,j] are nonzero
+    S_triads = S.multiply(S2)
+    n_triads = int(S_triads.sum())
 
-    return n_triads, A_triads
+    return n_triads, S_triads.toarray()
 
 
-def get_last_community_count(scenario_record: RawSimulationRecord):
+def get_last_community_count(last_graph: nx.DiGraph):
+    # Build a 0-indexed igraph from the networkx graph.
+    # Mapping is required because igraph add_edges() uses integer vertex *indices*,
+    # not the original node labels — passing raw labels causes wrong or out-of-range edges.
+    nodes = list(last_graph.nodes())
+    node_to_idx = {node: idx for idx, node in enumerate(nodes)}
+    edges_indexed = [(node_to_idx[u], node_to_idx[v]) for u, v in last_graph.edges()]
 
-    last_graph = scenario_record.get_graph(scenario_record.max_step)
-    edges = list(last_graph.edges())
-    igraph_g = ig.Graph(directed=True)
-    igraph_g.add_vertices(list(last_graph.nodes()))
-    igraph_g.add_edges(edges)
+    igraph_g = ig.Graph(n=len(nodes), edges=edges_indexed, directed=True)
 
+    # n_iterations > 0 bounds the refinement passes and prevents potential runaway.
     partition = leidenalg.find_partition(
         igraph_g,
         leidenalg.ModularityVertexPartition,
+        n_iterations=50,
     )
 
     membership = partition.membership
-    result = dict(zip(last_graph.nodes(), membership))
+    result = dict(zip(nodes, membership))
 
     last_community_sizes_dict = dict(Counter(result.values()))
     last_community_count = len(last_community_sizes_dict)
@@ -98,7 +105,8 @@ def compute_all_stats(record: RawSimulationRecord) -> Dict[str, Any]:
     A = nx.to_numpy_array(last_graph, nodelist=nodelist)
     n_triads, _ = get_triads_stats(A)
 
-    community_count, community_sizes = get_last_community_count(record)
+    # Reuse the already-loaded graph instead of calling record.get_graph a second time.
+    community_count, community_sizes = get_last_community_count(last_graph)
 
     return {
         "convergence_step": conv_step,

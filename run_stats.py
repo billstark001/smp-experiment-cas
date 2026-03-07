@@ -38,7 +38,7 @@ from smp_bindings import (  # type: ignore[import]
 import argparse
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -151,22 +151,47 @@ def main() -> None:
 
     ok = err = 0
 
-    with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        futures = {pool.submit(_process_scenario, BASE_PATH, s): s for s in to_process}
-        with tqdm(total=len(futures), unit="sim") as bar:
-            for future in as_completed(futures):
-                name, stats = future.result()
+    def _handle_result(name: str, stats) -> int:
+        """Write stats to LMDB. Returns 1 on success, 0 on failure."""
+        if stats is None:
+            return 0
+        value = msgpack.packb(stats, use_bin_type=True)
+        with env.begin(write=True) as txn:
+            txn.put(name.encode(), value)
+        return 1
+
+    if args.concurrency <= 1:
+        with tqdm(total=len(to_process), unit="sim") as bar:
+            for s in to_process:
+                name, stats = _process_scenario(BASE_PATH, s)
                 bar.set_postfix_str(name[-45:])
                 bar.update()
-
-                if stats is None:
+                if _handle_result(name, stats):
+                    ok += 1
+                else:
                     err += 1
-                    continue
-
-                value = msgpack.packb(stats, use_bin_type=True)
-                with env.begin(write=True) as txn:
-                    txn.put(name.encode(), value)
-                ok += 1
+    else:
+        with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+            futures = {pool.submit(_process_scenario, BASE_PATH, s): s for s in to_process}
+            with tqdm(total=len(futures), unit="sim") as bar:
+                for future in as_completed(futures):
+                    try:
+                        # Timeout prevents the main thread from blocking indefinitely if a
+                        # worker hangs (e.g. due to a pathological graph in compute_all_stats).
+                        name, stats = future.result(timeout=300)
+                    except FuturesTimeoutError:
+                        scenario = futures[future]
+                        name = scenario["UniqueName"]
+                        print(f"\n[WARN] {name}: timed out after 300 s", file=sys.stderr)
+                        bar.update()
+                        err += 1
+                        continue
+                    bar.set_postfix_str(name[-45:])
+                    bar.update()
+                    if _handle_result(name, stats):
+                        ok += 1
+                    else:
+                        err += 1
 
     env.close()
     print(f"\nStored : {ok}   Errors : {err}")

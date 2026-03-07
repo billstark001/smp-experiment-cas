@@ -116,6 +116,9 @@ def _make_scenario(
             "RewiringRate": rewiring,
             "RepostRate": repost_rate,
         }
+        scenario["RecSysParams"] = {
+            "UseCache": False,
+        }
     else:
         raise ValueError(f"Unknown dynamics: {dynamics!r}")
 
