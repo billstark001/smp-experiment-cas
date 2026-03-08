@@ -77,15 +77,20 @@ BASE_PATH = (
 def _process_scenario(
     base_path: str,
     scenario: Dict[str, Any],
+    pre_computed: Optional[Dict[str, Any]] = None,
 ) -> Tuple[str, Optional[Dict[str, Any]]]:
-    """Load one simulation record, compute stats, and return (name, stats | None)."""
+    """Load one simulation record, compute stats, and return (name, stats | None).
+
+    If *pre_computed* is provided it is forwarded to :func:`compute_all_stats`
+    so that already-stored fields are reused and only missing ones are computed.
+    """
     name = scenario["UniqueName"]
     try:
         record = RawSimulationRecord(base_path, scenario)
         if not record.is_finished or not record.is_sanitized:
             return name, None
         with record:
-            stats = compute_all_stats(record)
+            stats = compute_all_stats(record, pre_computed=pre_computed)
         return name, stats
     except Exception as exc:
         print(f"\n[WARN] {name}: {exc}", file=sys.stderr)
@@ -132,17 +137,20 @@ def main() -> None:
     # LMDB: 10 GiB ceiling; grows lazily on most platforms
     env = lmdb.open(args.db_path, map_size=10 * 1024**3, max_dbs=0)
 
-    # Determine which scenarios still need processing
+    # Determine which scenarios to process and pre-load any existing stats.
+    # With --force every entry is recomputed from scratch (pre_computed_map stays empty).
+    # Without --force every finished scenario is still processed, but existing LMDB data
+    # is passed as pre_computed so only new/missing fields are actually computed.
+    to_process = finished
+    pre_computed_map: Dict[str, Optional[Dict[str, Any]]] = {}
     if not args.force:
         with env.begin() as txn:
-            to_process = [
-                s for s in finished if txn.get(s["UniqueName"].encode()) is None
-            ]
-        skipped = len(finished) - len(to_process)
-        if skipped:
-            print(f"Already stored       : {skipped}  (use --force to recompute)")
-    else:
-        to_process = finished
+            for s in finished:
+                raw = txn.get(s["UniqueName"].encode())
+                if raw is not None:
+                    pre_computed_map[s["UniqueName"]] = msgpack.unpackb(raw, raw=False)
+        if pre_computed_map:
+            print(f"Incremental update   : {len(pre_computed_map)} entries with existing data")
 
     print(f"To process           : {len(to_process)}")
     if not to_process:
@@ -163,7 +171,9 @@ def main() -> None:
     if args.concurrency <= 1:
         with tqdm(total=len(to_process), unit="sim") as bar:
             for s in to_process:
-                name, stats = _process_scenario(BASE_PATH, s)
+                name, stats = _process_scenario(
+                    BASE_PATH, s, pre_computed_map.get(s["UniqueName"])
+                )
                 bar.set_postfix_str(name[-45:])
                 bar.update()
                 if _handle_result(name, stats):
@@ -172,7 +182,15 @@ def main() -> None:
                     err += 1
     else:
         with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-            futures = {pool.submit(_process_scenario, BASE_PATH, s): s for s in to_process}
+            futures = {
+                pool.submit(
+                    _process_scenario,
+                    BASE_PATH,
+                    s,
+                    pre_computed_map.get(s["UniqueName"]),
+                ): s
+                for s in to_process
+            }
             with tqdm(total=len(futures), unit="sim") as bar:
                 for future in as_completed(futures):
                     try:
