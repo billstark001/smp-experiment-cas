@@ -22,7 +22,7 @@ Repost rate (p):
   - p25 : RepostRate=0.25
   - p0  : RepostRate=0.00
 
-Repetitions: 20
+Repetitions: 40
 
 Network: Random, 500 nodes, ~15 follows each.
 Tolerance (continuous models only): 0.45
@@ -37,7 +37,8 @@ NODE_FOLLOW_COUNT = 15
 POST_RETAIN_COUNT = 3
 RECSYS_COUNT = 10
 MAX_SIMULATION_STEP = 5000
-REPETITIONS = 20
+REPETITIONS = 40
+REPETITIONS_VOTER = 10  # Voter model is slower, so we can do fewer repetitions
 TOLERANCE = 0.45  # for HK and Deffuant
 
 # ── Parameter sweep axes ─────────────────────────────────────────────────────
@@ -138,7 +139,8 @@ def generate_scenarios() -> List[Dict[str, Any]]:
         for recsys in recsys_list:
             for aq_key in ALPHA_Q_CONDITIONS:
                 for p_key in REPOST_CONDITIONS:
-                    for rep in range(REPETITIONS):
+                    repetitions = REPETITIONS_VOTER if dynamics == "Voter" else REPETITIONS
+                    for rep in range(repetitions):
                         scenarios.append(
                             _make_scenario(dynamics, recsys, aq_key, p_key, rep)
                         )

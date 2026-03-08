@@ -11,23 +11,20 @@ Options
 --out-dir  DIR   Output directory         (default: ./run/plots)
 --format   FMT   pdf | png | svg          (default: pdf)
 
-Figures generated
------------------
-  hk_vs_deffuant.{fmt}
-      3×2 grid comparing HK and Deffuant.
-      Rows 0-1: grouped bar plots (x = dynamics, bars = recsys) for
-                log-convergence time, final variance, closed triads,
-                peak-count=1 fraction.
-      Row 2: community count (x) vs modularity (y) scatter for HK and
-             Deffuant separately. Colour = recsys, marker = α/q cond,
-             opacity = repost rate.  Each point = condition-mean over reps.
-
-  voter_vs_galam.{fmt}
-      2×2 grid comparing Voter and Galam.
-      Row 0: bar plots for final magnetization and log-convergence time.
-      Row 1: community vs modularity scatter for Voter and Galam
-             (Random + Structure only; Opinion-M9 not available for
-             discrete models).
+Outputs
+-------
+  fig_hk_deffuant_bars_v1.{fmt}
+      1×4 row: 4 bar metrics (averaged over all aq/repost conditions).
+  fig_hk_deffuant_bars_v2.{fmt}
+      2×2 grid: same 4 bar metrics, each with 12 bars (x = dynamics×aq,
+      bars = recsys), averaged over repost conditions.
+  fig_hk_deffuant_scatter.{fmt}
+      1×2 community-count vs modularity scatters for HK and Deffuant.
+  tab_voter_galam_metrics.txt
+      LaTeX table: mean ± std for final_magnetization and
+      log_convergence_time for Voter and Galam (random + structure_m9).
+  fig_voter_galam_scatter.{fmt}
+      1×2 community-count vs modularity scatters for Voter and Galam.
 """
 
 from __future__ import annotations
@@ -67,6 +64,25 @@ from plot_utils import (
     _default_db,
     _default_out,
 )
+
+
+# ── Subplot labeling ──────────────────────────────────────────────────────────
+
+
+def _label_axes(axes_flat: List[Axes], start: int = 0) -> None:
+    """Add bold (a), (b), … labels to each axis in left-to-right order."""
+    for i, ax in enumerate(axes_flat):
+        label = chr(ord("a") + start + i)
+        ax.text(
+            -0.12,
+            1.06,
+            f"({label})",
+            transform=ax.transAxes,
+            fontsize=10,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
 
 
 # ── Shared panel helpers ──────────────────────────────────────────────────────
@@ -111,6 +127,69 @@ def _bar_panel(
 
     ax.set_xticks(x)
     ax.set_xticklabels([DYNAMICS_LABEL[d] for d in dynamics_list], fontsize=9)
+    ax.set_ylabel(ylabel, fontsize=9)
+    if title:
+        ax.set_title(title, fontsize=9)
+
+
+def _bar_panel_aq_split(
+    ax: Axes,
+    df: pd.DataFrame,
+    dynamics_list: List[str],
+    aq_list: List[str],
+    metric: str,
+    ylabel: str,
+    recsys_list: List[str],
+    title: str = "",
+) -> None:
+    """Grouped bar chart with 12 bars: x = (dynamics, aq) combos, bar groups = recsys.
+
+    x positions are ordered as: for each dynamics, all aq conditions;  with a
+    small gap inserted between different dynamics groups.
+    """
+    # Build ordered x-group list: [(dyn, aq), ...]
+    groups = [(dyn, aq) for dyn in dynamics_list for aq in aq_list]
+    n_groups = len(groups)  # 2 * 2 = 4
+    n_rec = len(recsys_list)  # 3
+    bw = 0.18
+    offsets = np.linspace(-(n_rec - 1) / 2, (n_rec - 1) / 2, n_rec) * bw
+
+    # Insert a wider gap between dynamics groups
+    gap = 0.35  # extra spacing between dynamics blocks
+    x_positions: List[float] = []
+    for gi, (dyn, aq) in enumerate(groups):
+        dyn_idx = dynamics_list.index(dyn)
+        within_idx = aq_list.index(aq)
+        x_positions.append(dyn_idx * (len(aq_list) + gap) + within_idx)
+
+    for k, recsys in enumerate(recsys_list):
+        rsub = df[df["recsys"] == recsys]
+        for gi, (dyn, aq) in enumerate(groups):
+            cell = rsub[(rsub["dynamics"] == dyn) & (rsub["aq"] == aq)]
+            if metric == "peak_count_is_1":
+                vals = cell["opinion_peak_count"]
+                vals = (vals == 1).astype(float).dropna()
+            else:
+                vals = cell[metric].dropna()
+            mu, se = mean_sem(vals)
+            if np.isnan(mu):
+                continue
+            ax.bar(
+                x_positions[gi] + offsets[k],
+                mu,
+                bw * 0.9,
+                color=RECSYS_COLOR[recsys],
+                alpha=0.88,
+                yerr=se,
+                capsize=2.0,
+                error_kw={"linewidth": 0.7, "capthick": 0.7},
+            )
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(
+        [f"{DYNAMICS_LABEL[d]}\n{AQ_LABEL[a]}" for d, a in groups],
+        fontsize=8,
+    )
     ax.set_ylabel(ylabel, fontsize=9)
     if title:
         ax.set_title(title, fontsize=9)
@@ -284,7 +363,7 @@ def _build_legend_handles(recsys_list: List[str]) -> list:
     return handles
 
 
-# ── Figure 1: HK vs Deffuant ─────────────────────────────────────────────────
+# ── Figure 1a: HK vs Deffuant — bars v1 (1×4, aggregated over aq/repost) ────
 
 _HK_DEFFUANT_BAR_METRICS: List[Tuple[str, str]] = [
     ("log_convergence_time", r"Log-conv. time $\log(1+t^*)$"),
@@ -297,44 +376,108 @@ _HK_DEFFUANT_RECSYS = ["random", "structure_m9", "opinion_m9"]
 _HK_DEFFUANT_DYN = ["hk", "deffuant"]
 
 
-def plot_hk_vs_deffuant(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
-    """3×2 grid: 4 bar plots (rows 0–1) + 2 community/modularity scatters (row 2)."""
-    fig, axes = plt.subplots(3, 2, figsize=(10, 10))
-    fig.suptitle("HK vs. Deffuant — metric comparison", fontsize=12, y=1.01)
+def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
+    """1×4 row: 4 bar-metric panels averaged over all aq/repost conditions."""
+    fig, axes = plt.subplots(1, 4, figsize=(14, 4))
+    fig.suptitle("HK vs. Deffuant — bar metrics", fontsize=12, y=1.02)
 
-    # ── Rows 0–1: bar plots ───────────────────────────────────────────────────
     for idx, (metric, ylabel) in enumerate(_HK_DEFFUANT_BAR_METRICS):
-        ax = axes[idx // 2][idx % 2]
         _bar_panel(
-            ax, df, _HK_DEFFUANT_DYN, metric, ylabel, _HK_DEFFUANT_RECSYS, title=ylabel
+            axes[idx],
+            df,
+            _HK_DEFFUANT_DYN,
+            metric,
+            ylabel,
+            _HK_DEFFUANT_RECSYS,
+            title=ylabel,
         )
 
-    # ── Row 2: community vs modularity scatter ────────────────────────────────
+    _label_axes(list(axes))
+
+    handles = [mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r]) for r in _HK_DEFFUANT_RECSYS]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=len(handles),
+        bbox_to_anchor=(0.5, -0.08),
+        fontsize=8,
+        framealpha=0.9,
+    )
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    save_fig(fig, out_dir, "fig_hk_deffuant_bars_v1", fmt)
+
+
+# ── Figure 1b: HK vs Deffuant — bars v2 (2×2, 12 bars per subplot, split aq) ─
+
+
+def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
+    """2×2 grid: 4 bar-metric panels, each with 12 bars (dynamics×aq on x, recsys bars)."""
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    fig.suptitle("HK vs. Deffuant — bar metrics split by α/q condition", fontsize=12, y=1.02)
+
+    for idx, (metric, ylabel) in enumerate(_HK_DEFFUANT_BAR_METRICS):
+        ax = axes[idx // 2][idx % 2]
+        _bar_panel_aq_split(
+            ax,
+            df,
+            _HK_DEFFUANT_DYN,
+            AQ_ORDER,
+            metric,
+            ylabel,
+            _HK_DEFFUANT_RECSYS,
+            title=ylabel,
+        )
+
+    _label_axes([axes[r][c] for r in range(2) for c in range(2)])
+
+    handles = [mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r]) for r in _HK_DEFFUANT_RECSYS]
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=len(handles),
+        bbox_to_anchor=(0.5, -0.04),
+        fontsize=8,
+        framealpha=0.9,
+    )
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    save_fig(fig, out_dir, "fig_hk_deffuant_bars_v2", fmt)
+
+
+# ── Figure 2: HK vs Deffuant — community/modularity scatter ─────────────────
+
+
+def plot_hk_deffuant_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
+    """1×2 community-count vs modularity scatter for HK and Deffuant."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
+    fig.suptitle("HK vs. Deffuant — Community count vs Modularity", fontsize=12, y=1.02)
+
     for col, dyn in enumerate(_HK_DEFFUANT_DYN):
         _community_modularity_scatter(
-            axes[2][col],
+            axes[col],
             df,
             dyn,
             _HK_DEFFUANT_RECSYS,
-            title=f"{DYNAMICS_LABEL[dyn]} — Community count vs Modularity",
+            title=f"{DYNAMICS_LABEL[dyn]}",
         )
+
+    _label_axes(list(axes))
 
     handles = _build_legend_handles(_HK_DEFFUANT_RECSYS)
     fig.legend(
         handles=handles,
         loc="lower center",
         ncol=len(handles),
-        bbox_to_anchor=(0.5, -0.03),
+        bbox_to_anchor=(0.5, -0.06),
         fontsize=8,
         framealpha=0.9,
     )
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
-    save_fig(fig, out_dir, "hk_vs_deffuant", fmt)
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    save_fig(fig, out_dir, "fig_hk_deffuant_scatter", fmt)
 
 
-# ── Figure 2: Voter vs Galam ─────────────────────────────────────────────────
+# ── Table 1: Voter vs Galam — LaTeX metrics table ────────────────────────────
 
-_VOTER_GALAM_BAR_METRICS: List[Tuple[str, str]] = [
+_VOTER_GALAM_TABLE_METRICS: List[Tuple[str, str]] = [
     ("final_magnetization", r"Final magnetization $|\bar{x}|$"),
     ("log_convergence_time", r"Log-conv. time $\log(1+t^*)$"),
 ]
@@ -343,44 +486,88 @@ _VOTER_GALAM_RECSYS = ["random", "structure_m9"]
 _VOTER_GALAM_DYN = ["voter", "galam"]
 
 
-def plot_voter_vs_galam(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
-    """2×2 grid: 2 bar plots (row 0) + 2 community/modularity scatters (row 1)."""
-    fig, axes = plt.subplots(2, 2, figsize=(9, 8))
-    fig.suptitle("Voter vs. Galam — metric comparison", fontsize=12, y=1.01)
+def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
+    """Write a LaTeX table (tab_voter_galam_metrics.txt) with mean±std.
 
-    # ── Row 0: bar plots ──────────────────────────────────────────────────────
-    for col, (metric, ylabel) in enumerate(_VOTER_GALAM_BAR_METRICS):
-        _bar_panel(
-            axes[0][col],
-            df,
-            _VOTER_GALAM_DYN,
-            metric,
-            ylabel,
-            _VOTER_GALAM_RECSYS,
-            title=ylabel,
-        )
+    Rows: (dynamics, recsys); Columns: metrics.
+    """
+    lines: List[str] = []
 
-    # ── Row 1: community vs modularity scatter ────────────────────────────────
+    # ── header ────────────────────────────────────────────────────────────────
+    n_metrics = len(_VOTER_GALAM_TABLE_METRICS)
+    col_spec = "ll" + "r" * n_metrics
+    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"  \centering")
+    lines.append(r"  \caption{Voter vs.~Galam: mean~$\pm$~std over all conditions}")
+    lines.append(r"  \label{tab:voter_galam_metrics}")
+    lines.append(f"  \\begin{{tabular}}{{{col_spec}}}")
+    lines.append(r"    \toprule")
+
+    header_cols = " & ".join(
+        ["Dynamics", "Rec.~Sys."] + [label for _, label in _VOTER_GALAM_TABLE_METRICS]
+    )
+    lines.append(f"    {header_cols} \\\\")
+    lines.append(r"    \midrule")
+
+    # ── data rows ─────────────────────────────────────────────────────────────
+    for dyn in _VOTER_GALAM_DYN:
+        dsub = df[df["dynamics"] == dyn]
+        for ri, recsys in enumerate(_VOTER_GALAM_RECSYS):
+            rsub = dsub[dsub["recsys"] == recsys]
+            dyn_cell = DYNAMICS_LABEL[dyn] if ri == 0 else ""
+            rec_cell = RECSYS_LABEL[recsys]
+            metric_cells: List[str] = []
+            for metric, _ in _VOTER_GALAM_TABLE_METRICS:
+                vals = rsub[metric].dropna()
+                if len(vals) == 0:
+                    metric_cells.append("---")
+                else:
+                    mu = vals.mean()
+                    std = vals.std()
+                    metric_cells.append(f"${mu:.3f} \\pm {std:.3f}$")
+            row = " & ".join([dyn_cell, rec_cell] + metric_cells)
+            lines.append(f"    {row} \\\\")
+        lines.append(r"    \addlinespace")
+
+    lines.append(r"    \bottomrule")
+    lines.append(r"  \end{tabular}")
+    lines.append(r"\end{table}")
+
+    out_path = out_dir / "tab_voter_galam_metrics.txt"
+    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"  Wrote table → {out_path}")
+
+
+# ── Figure 3: Voter vs Galam — community/modularity scatter ──────────────────
+
+
+def plot_voter_galam_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
+    """1×2 community-count vs modularity scatter for Voter and Galam."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
+    fig.suptitle("Voter vs. Galam — Community count vs Modularity", fontsize=12, y=1.02)
+
     for col, dyn in enumerate(_VOTER_GALAM_DYN):
         _community_modularity_scatter(
-            axes[1][col],
+            axes[col],
             df,
             dyn,
             _VOTER_GALAM_RECSYS,
-            title=f"{DYNAMICS_LABEL[dyn]} — Community count vs Modularity",
+            title=f"{DYNAMICS_LABEL[dyn]}",
         )
+
+    _label_axes(list(axes))
 
     handles = _build_legend_handles(_VOTER_GALAM_RECSYS)
     fig.legend(
         handles=handles,
         loc="lower center",
         ncol=len(handles),
-        bbox_to_anchor=(0.5, -0.03),
+        bbox_to_anchor=(0.5, -0.06),
         fontsize=8,
         framealpha=0.9,
     )
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
-    save_fig(fig, out_dir, "voter_vs_galam", fmt)
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    save_fig(fig, out_dir, "fig_voter_galam_scatter", fmt)
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
@@ -425,12 +612,15 @@ def main() -> None:
         )
         sys.exit(1)
 
-    print(f"Loaded {len(df):,} records.  Generating figures → {args.out_dir}/\n")
+    print(f"Loaded {len(df):,} records.  Generating outputs → {args.out_dir}/\n")
 
-    plot_hk_vs_deffuant(df, out_dir, args.format)
-    plot_voter_vs_galam(df, out_dir, args.format)
+    plot_hk_deffuant_bars_v1(df, out_dir, args.format)
+    plot_hk_deffuant_bars_v2(df, out_dir, args.format)
+    plot_hk_deffuant_scatter(df, out_dir, args.format)
+    make_voter_galam_table(df, out_dir)
+    plot_voter_galam_scatter(df, out_dir, args.format)
 
-    print(f"\nDone.  2 figures written to {args.out_dir}/")
+    print(f"\nDone.  5 outputs written to {args.out_dir}/")
 
 
 if __name__ == "__main__":

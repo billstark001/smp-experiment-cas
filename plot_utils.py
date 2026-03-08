@@ -105,8 +105,8 @@ DYNAMICS_LABEL = {
 RECSYS_ORDER = ["random", "structure_m9", "opinion_m9"]
 RECSYS_LABEL = {
     "random": "Random",
-    "structure_m9": "Structure (M9)",
-    "opinion_m9": "Opinion (M9)",
+    "structure_m9": "Structure",
+    "opinion_m9": "Opinion",
 }
 
 AQ_ORDER = ["a_gt_q", "q_gt_a"]
