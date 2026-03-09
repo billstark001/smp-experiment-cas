@@ -1,105 +1,107 @@
 # smp-experiment-cas
 
-## 实验场景生成（scenarios.py）
+Experiment scripts for the [social-media-models](https://github.com/billstark001/social-media-models) simulation framework.
 
-完整的参数空间，总计 **800 次模拟**：
+## Experiment Scenario Generation (scenarios.py)
 
-| 维度 | 连续模型 (HK / Deffuant) | 离散模型 (Galam / Voter) |
+Full parameter space, totalling **800 simulations**:
+
+| Dimension | Continuous models (HK / Deffuant) | Discrete models (Galam / Voter) |
 |------|--------------------------|--------------------------|
-| 推荐系统 | Random、StructureM9、OpinionM9 | Random、StructureM9 |
-| α vs q | α > q（Influence=0.5, Rate=0.05）<br>q > α（Influence=0.05, Rate=0.5） | 同左 |
-| RepostRate p | p=0.25 / p=0.0 | 同左 |
-| 重复次数 | 20 | 20 |
+| Recommendation system | Random, StructureM9, OpinionM9 | Random, StructureM9 |
+| α vs q | α > q (Influence=0.5, Rate=0.05)<br>q > α (Influence=0.05, Rate=0.5) | Same as left |
+| RepostRate p | p=0.25 / p=0.0 | Same as left |
+| Repetitions | 20 | 20 |
 
-其他固定参数：500 节点、15 跟随数、Tolerance=0.45（连续模型）、5000 步上限。
+Other fixed parameters: 500 nodes, 15 follows, Tolerance=0.45 (continuous models), 5000 steps maximum.
 
-## 主运行脚本（run_experiments.py）
+## Main Run Script (run_experiments.py)
 
 ```bash
-python run_experiments.py              # 运行全部 800 次（默认并发 4）
-python run_experiments.py --dry-run    # 仅打印统计，不运行
+python run_experiments.py              # Run all 800 simulations (default concurrency 4)
+python run_experiments.py --dry-run    # Print statistics only; do not run
 python run_experiments.py --concurrency 8 --max-step 2000
 ```
 
-支持断点续跑（已完成的跳过），结果写入 `./run/<UniqueName>/`。
+Supports resuming from interruptions (completed runs are skipped). Results are written to `./run/<UniqueName>/`.
 
-## 统计指标计算（stat_utils.py）
+## Statistics Computation (stat_utils.py)
 
-提供以下工具函数，可独立调用，也可通过 `compute_all_stats()` 一次性获取：
+Provides the following utility functions, which can be called independently or all at once via `compute_all_stats()`:
 
-| 函数 | 返回值 | 说明 |
+| Function | Return value | Description |
 |------|--------|------|
-| `get_triads_stats(A)` | `(n_triads, A_triads)` | 有向闭合三角形数量及矩阵 |
-| `get_last_community_count(record)` | `(count, sizes_json)` | Leiden 社区数量及各社区大小（JSON） |
-| `get_opinion_stats(record)` | `(variance, magnetization)` | 最终意见方差 / 绝对均值（磁化率） |
-| `get_convergence_step(record)` | `int` | 意见收敛步数（最大单步变化首次低于 ε=1e-4） |
-| `compute_all_stats(record)` | `dict` | 聚合所有指标，返回可 msgpack 序列化的字典 |
+| `get_triads_stats(A)` | `(n_triads, A_triads)` | Number of directed closed triangles and their matrix |
+| `get_last_community_count(record)` | `(count, sizes_json)` | Number of Leiden communities and their sizes (JSON) |
+| `get_opinion_stats(record)` | `(variance, magnetization)` | Final opinion variance / absolute mean (magnetization) |
+| `get_convergence_step(record)` | `int` | Opinion convergence step (first step where max per-step change drops below ε=1e-4) |
+| `compute_all_stats(record)` | `dict` | Aggregate all metrics; returns a msgpack-serializable dict |
 
-`compute_all_stats` 返回字段：
+`compute_all_stats` return fields:
 
 ```
-convergence_step        int     – 意见收敛步数
+convergence_step        int     – opinion convergence step
 log_convergence_time    float   – log1p(convergence_step)
-final_variance          float   – 最终步意见方差
-final_magnetization     float   – 最终步 |mean opinion|（磁化率）
-n_closed_triangles      int     – 最终图中有向闭合三角形数量
-community_count         int     – Leiden 社区数量
+final_variance          float   – opinion variance at the final step
+final_magnetization     float   – |mean opinion| at the final step (magnetization)
+n_closed_triangles      int     – directed closed triangles in the final graph
+community_count         int     – number of Leiden communities
 community_sizes         str     – JSON {community_id: size}
 ```
 
-## 统计批量采集（run_stats.py）
+## Batch Statistics Collection (run_stats.py)
 
 ```bash
-python run_stats.py                          # 处理全部已完成模拟（默认并发 4）
-python run_stats.py --concurrency 8          # 指定并发数
-python run_stats.py --db-path ./my.lmdb      # 指定输出数据库路径
-python run_stats.py --force                  # 强制重算已存储条目
+python run_stats.py                          # Process all completed simulations (default concurrency 4)
+python run_stats.py --concurrency 8          # Specify concurrency
+python run_stats.py --db-path ./my.lmdb      # Specify output database path
+python run_stats.py --force                  # Force recomputation of stored entries
 ```
 
-结果写入 LMDB 数据库（默认 `./run/stats.lmdb`）：
+Results are written to an LMDB database (default `./run/stats.lmdb`):
 
-- **key**：场景 `UniqueName`（UTF-8 字节串）
-- **value**：msgpack 编码的 `compute_all_stats` 字典
-- 支持增量更新，已存储条目默认跳过
+- **key**: scenario `UniqueName` (UTF-8 byte string)
+- **value**: msgpack-encoded `compute_all_stats` dict
+- Supports incremental updates; stored entries are skipped by default
 
-## 绘图（gen_plots.py）
+## Plotting (gen_plots.py)
 
-| 文件名 | 内容 |
+| Filename | Content |
 |---|---|
-| `log_convergence_time.{fmt}` | 2×2 分组条形图（α/q 条件 × 转发率），按模型和推荐系统分组，含 ±1 SEM 误差棒 |
-| `final_variance.{fmt}` | 同上，指标换为最终意见方差 |
-| `final_magnetization.{fmt}` | 同上，指标换为最终磁化强度 |
-| `community_count.{fmt}` | 同上，指标换为社区数量 |
-| `recsys_delta.{fmt}` | Structure/Opinion 推荐系统相对 Random 基线的**相对变化（%）**，2×2 指标宫格 |
-| `condition_comparison.{fmt}` | 两行：α>q vs q>α 条件对比（上）、转发率对比（下），每指标一列 |
-| `summary_heatmap.{fmt}` | 列 z-score 归一化热图，行=（模型×推荐系统），列=（条件×转发率），标注原始均值 |
+| `log_convergence_time.{fmt}` | 2×2 grouped bar chart (α/q condition × repost rate), grouped by model and recommendation system, with ±1 SEM error bars |
+| `final_variance.{fmt}` | Same as above, metric changed to final opinion variance |
+| `final_magnetization.{fmt}` | Same as above, metric changed to final magnetization |
+| `community_count.{fmt}` | Same as above, metric changed to community count |
+| `recsys_delta.{fmt}` | Structure/Opinion recommendation system **relative change (%)** vs Random baseline, 2×2 metric grid |
+| `condition_comparison.{fmt}` | Two rows: α>q vs q>α condition comparison (top), repost rate comparison (bottom), one column per metric |
+| `summary_heatmap.{fmt}` | Column z-score normalised heatmap, rows=(model×recommendation system), columns=(condition×repost rate), with raw means annotated |
 
-**字体优先级**：`scienceplots` → Times New Roman → Times → Liberation Serif → CMU Serif → DejaVu Serif（回退）。
+**Font priority**: `scienceplots` → Times New Roman → Times → Liberation Serif → CMU Serif → DejaVu Serif (fallback).
 
-运行方式：
+Run:
 
 ```bash
-python gen_plots.py                        # 默认 PDF，输出到 ./run/plots/
-python gen_plots.py --format png           # PNG 格式
+python gen_plots.py                        # Default PDF, output to ./run/plots/
+python gen_plots.py --format png           # PNG format
 python gen_plots.py --db-path /path/to.lmdb --out-dir /path/to/out
 ```
 
-## 环境变量
+## Environment Variables
 
-所有脚本均通过 `python-dotenv` 自动读取项目根目录下的 `.env` 文件。
-命令行参数的优先级高于环境变量，环境变量的优先级高于代码内置默认值。
+All scripts automatically read the `.env` file at the project root via `python-dotenv`.
+Command-line arguments take precedence over environment variables, which in turn take precedence over built-in code defaults.
 
-复制 `.env.example` 为 `.env` 并按需修改：
+Copy `.env.example` to `.env` and modify as needed:
 
 ```bash
 cp .env.example .env
 ```
 
-| 环境变量 | 适用脚本 | 默认值 | 说明 |
+| Environment Variable | Applicable Scripts | Default | Description |
 |---|---|---|---|
-| `SMP_BINARY_PATH` | `run_experiments.py` | `../social-media-models/smp` | Go 仿真二进制文件路径，支持 `~` 展开 |
-| `SMP_BASE_PATH` | `run_experiments.py`<br>`run_stats.py` | `./run` | 仿真结果根目录，支持 `~` 展开 |
-| `SMP_DB_PATH` | `run_stats.py`<br>`gen_plots.py` | `$SMP_BASE_PATH/stats.lmdb` | LMDB 统计数据库目录，支持 `~` 展开 |
-| `SMP_PLOTS_PATH` | `gen_plots.py` | `$SMP_BASE_PATH/plots` | 图表输出目录，支持 `~` 展开 |
+| `SMP_BINARY_PATH` | `run_experiments.py` | `../social-media-models/smp` | Path to the Go simulation binary; supports `~` expansion |
+| `SMP_BASE_PATH` | `run_experiments.py`<br>`run_stats.py` | `./run` | Simulation results root directory; supports `~` expansion |
+| `SMP_DB_PATH` | `run_stats.py`<br>`gen_plots.py` | `$SMP_BASE_PATH/stats.lmdb` | LMDB statistics database directory; supports `~` expansion |
+| `SMP_PLOTS_PATH` | `gen_plots.py` | `$SMP_BASE_PATH/plots` | Plot output directory; supports `~` expansion |
 
-> **注意**：`SMP_DB_PATH` 的代码内置默认值为 `./run/stats.lmdb`，不会动态跟随 `SMP_BASE_PATH` 变化；如需两者联动，请在 `.env` 中同时设置两个变量。
+> **Note**: The built-in default for `SMP_DB_PATH` is `./run/stats.lmdb` and does not dynamically follow `SMP_BASE_PATH`; to link them, set both variables in `.env`.
