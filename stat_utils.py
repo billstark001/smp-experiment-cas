@@ -67,9 +67,9 @@ def kde_min_bw_factory(min_bandwidth: float):
 
 
 def get_kde_pdf(data, min_bandwidth: float, xmin: float, xmax: float):
-    # 如果样本全为某个点，KDE会报错，这里做特殊处理
+    # If all samples are identical, KDE will raise an error; handle this as a special case.
     if np.all(data == data[0]):
-        # 返回一个峰值在这个点的近似delta分布
+        # Return an approximate delta distribution with a peak at that point.
         def delta_like_pdf(x):
             return norm.pdf(x, data[0], min_bandwidth)
             # return 1.0 if np.isclose(x[0], data[0]) else 0.0
