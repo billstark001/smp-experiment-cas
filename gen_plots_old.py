@@ -88,7 +88,7 @@ def plot_metric_overview(
     Error bars show ±1 SEM across repetitions.
     """
     fig, axes = plt.subplots(2, 2, figsize=(9, 6.5), sharey=True, sharex=True)
-    fig.suptitle(ylabel, fontsize=12, y=1.01)
+    fig.suptitle(ylabel, fontsize=18, y=1.01)
 
     x = np.arange(len(DYNAMICS_ORDER))
     n_rec = len(RECSYS_ORDER)
@@ -123,11 +123,11 @@ def plot_metric_overview(
                             error_kw={"linewidth": 0.8, "capthick": 0.8},
                         )
 
-            ax.set_title(f"{AQ_LABEL[aq]},  {REPOST_LABEL[repost]}", fontsize=9)
+            ax.set_title(f"{AQ_LABEL[aq]},  {REPOST_LABEL[repost]}", fontsize=14)
             ax.set_xticks(x)
-            ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=9)
+            ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=14)
             if j == 0:
-                ax.set_ylabel(ylabel, fontsize=9)
+                ax.set_ylabel(ylabel, fontsize=14)
 
     fig.legend(
         handles=legend_handles,
@@ -156,7 +156,7 @@ def plot_recsys_delta(
 
     fig, axes = plt.subplots(2, 2, figsize=(9, 6.5))
     fig.suptitle(
-        "Effect of Recommendation System Relative to Random Baseline", fontsize=12
+        "Effect of Recommendation System Relative to Random Baseline", fontsize=18
     )
 
     x = np.arange(len(DYNAMICS_ORDER))
@@ -189,10 +189,10 @@ def plot_recsys_delta(
                 )
 
         ax.axhline(0, color="black", linewidth=0.8, linestyle="-")
-        ax.set_title(ylabel, fontsize=9)
-        ax.set_ylabel("Relative change (%)", fontsize=9)
+        ax.set_title(ylabel, fontsize=14)
+        ax.set_ylabel("Relative change (%)", fontsize=14)
         ax.set_xticks(x)
-        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=9)
+        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=14)
 
     fig.legend(
         handles=legend_handles,
@@ -218,7 +218,7 @@ def plot_condition_comparison(
     X axis = dynamics model; bar groups = condition level; error bars = SEM.
     """
     fig, axes = plt.subplots(2, 4, figsize=(13, 6.5), sharey=False)
-    fig.suptitle("Effect of Interaction Conditions on Simulation Metrics", fontsize=12)
+    fig.suptitle("Effect of Interaction Conditions on Simulation Metrics", fontsize=18)
 
     x = np.arange(len(DYNAMICS_ORDER))
     bw = 0.32
@@ -247,9 +247,9 @@ def plot_condition_comparison(
                         capsize=2.5,
                         error_kw={"linewidth": 0.8, "capthick": 0.8},
                     )
-        ax.set_title(ylabel, fontsize=9)
+        ax.set_title(ylabel, fontsize=14)
         ax.set_xticks(x)
-        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=8)
+        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=12)
         if col == 0:
             ax.set_ylabel("Mean value")
 
@@ -277,9 +277,9 @@ def plot_condition_comparison(
                         capsize=2.5,
                         error_kw={"linewidth": 0.8, "capthick": 0.8},
                     )
-        ax.set_title(ylabel, fontsize=9)
+        ax.set_title(ylabel, fontsize=14)
         ax.set_xticks(x)
-        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=8)
+        ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=12)
         if col == 0:
             ax.set_ylabel("Mean value")
 
@@ -292,7 +292,7 @@ def plot_condition_comparison(
             ha="center",
             va="center",
             rotation=90,
-            fontsize=10,
+            fontsize=15,
             fontweight="bold",
         )
 
@@ -301,13 +301,13 @@ def plot_condition_comparison(
         handles=aq_handles,
         title=r"$\alpha$/$q$ cond.",
         loc="upper right",
-        fontsize=8,
+        fontsize=12,
     )
     axes[1][3].legend(
         handles=repost_handles,
         title="Repost rate",
         loc="upper right",
-        fontsize=8,
+        fontsize=12,
     )
 
     fig.tight_layout()
@@ -342,7 +342,7 @@ def plot_summary_heatmap(
     fig, axes = plt.subplots(2, 2, figsize=(11, 8))
     fig.suptitle(
         "Mean Metric Values by Dynamics × Recsys and Condition (column z-score)",
-        fontsize=12,
+        fontsize=18,
     )
 
     for idx, (metric, ylabel) in enumerate(METRICS):
@@ -370,10 +370,10 @@ def plot_summary_heatmap(
         plt.colorbar(im, ax=ax, label="z-score", fraction=0.03, pad=0.02)
 
         ax.set_xticks(np.arange(n_cols))
-        ax.set_xticklabels(col_labels, fontsize=7)
+        ax.set_xticklabels(col_labels, fontsize=11)
         ax.set_yticks(np.arange(n_rows))
-        ax.set_yticklabels(row_labels, fontsize=7)
-        ax.set_title(ylabel, fontsize=9)
+        ax.set_yticklabels(row_labels, fontsize=11)
+        ax.set_title(ylabel, fontsize=14)
 
         # Annotate each cell with the raw mean
         for ri in range(n_rows):
@@ -389,7 +389,7 @@ def plot_summary_heatmap(
                         f"{val:.2f}",
                         ha="center",
                         va="center",
-                        fontsize=5.5,
+                        fontsize=8,
                         color=txt_color,
                     )
 

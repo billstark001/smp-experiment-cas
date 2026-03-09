@@ -76,7 +76,7 @@ _TRACE_COLOR = "#2166ac"  # muted blue
 _TRACE_LW = 0.25
 _TRACE_ALPHA = 0.35
 
-_STEP_CAP = 0.3
+_STEP_CAP = 0.5
 
 def _find_scenario(
     df: pd.DataFrame, dynamics: str, recsys: str, aq: str
@@ -86,6 +86,7 @@ def _find_scenario(
         (df["dynamics"] == dynamics)
         & (df["recsys"] == recsys)
         & (df["aq"] == aq)
+        & (df["repost"] == "p0")
         & (df["opinion_peak_count"] != 1)
     ].copy()
 
@@ -183,9 +184,9 @@ def main(argv: list[str] | None = None) -> None:
         ax.set_title(
             f"{dyn_label} · {recsys_label} · {aq_label}\n"
             f"peaks = {peak_count},  rep {int(row['rep'])} ({row['repost']})",
-            fontsize=9,
+            fontsize=14,
         )
-        ax.set_xlabel("Simulation step", fontsize=9)
+        ax.set_xlabel("Simulation step", fontsize=14)
         ax.set_ylim(-1.05, 1.05)
         ax.set_xlim(0, cutoff)
 
@@ -195,13 +196,13 @@ def main(argv: list[str] | None = None) -> None:
             1.06,
             panel_label,
             transform=ax.transAxes,
-            fontsize=10,
+            fontsize=15,
             fontweight="bold",
             va="top",
             ha="left",
         )
 
-    axes[0].set_ylabel("Opinion", fontsize=9)
+    axes[0].set_ylabel("Opinion", fontsize=14)
 
     save_fig(fig, out_dir, "fig_opinion_traces", args.format)
     print("Done.")

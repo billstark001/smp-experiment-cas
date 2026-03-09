@@ -78,7 +78,7 @@ def _label_axes(axes_flat: List[Axes], start: int = 0) -> None:
             1.06,
             f"({label})",
             transform=ax.transAxes,
-            fontsize=10,
+            fontsize=15,
             fontweight="bold",
             va="top",
             ha="left",
@@ -126,10 +126,10 @@ def _bar_panel(
             )
 
     ax.set_xticks(x)
-    ax.set_xticklabels([DYNAMICS_LABEL[d] for d in dynamics_list], fontsize=9)
-    ax.set_ylabel(ylabel, fontsize=9)
+    ax.set_xticklabels([DYNAMICS_LABEL[d] for d in dynamics_list], fontsize=14)
+    ax.set_ylabel(ylabel, fontsize=14)
     if title:
-        ax.set_title(title, fontsize=9)
+        ax.set_title(title, fontsize=14)
 
 
 def _bar_panel_aq_split(
@@ -188,11 +188,11 @@ def _bar_panel_aq_split(
     ax.set_xticks(x_positions)
     ax.set_xticklabels(
         [f"{DYNAMICS_LABEL[d]}\n{AQ_LABEL[a]}" for d, a in groups],
-        fontsize=8,
+        fontsize=12,
     )
-    ax.set_ylabel(ylabel, fontsize=9)
+    ax.set_ylabel(ylabel, fontsize=14)
     if title:
-        ax.set_title(title, fontsize=9)
+        ax.set_title(title, fontsize=14)
 
 
 def _apply_jitter(
@@ -325,9 +325,9 @@ def _community_modularity_scatter(
             zorder=3,
         )
 
-    ax.set_xlabel("Community count", fontsize=9)
-    ax.set_ylabel("Modularity", fontsize=9)
-    ax.set_title(title, fontsize=9)
+    ax.set_xlabel("Community count", fontsize=14)
+    ax.set_ylabel("Modularity", fontsize=14)
+    ax.set_title(title, fontsize=14)
 
 
 def _build_legend_handles(recsys_list: List[str]) -> list:
@@ -379,7 +379,6 @@ _HK_DEFFUANT_DYN = ["hk", "deffuant"]
 def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     """1×4 row: 4 bar-metric panels averaged over all aq/repost conditions."""
     fig, axes = plt.subplots(1, 4, figsize=(14, 4))
-    fig.suptitle("HK vs. Deffuant — bar metrics", fontsize=12, y=1.02)
 
     for idx, (metric, ylabel) in enumerate(_HK_DEFFUANT_BAR_METRICS):
         _bar_panel(
@@ -400,7 +399,7 @@ def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
         loc="lower center",
         ncol=len(handles),
         bbox_to_anchor=(0.5, -0.08),
-        fontsize=8,
+        fontsize=12,
         framealpha=0.9,
     )
     fig.tight_layout(rect=(0, 0.06, 1, 1))
@@ -413,7 +412,6 @@ def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
 def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     """2×2 grid: 4 bar-metric panels, each with 12 bars (dynamics×aq on x, recsys bars)."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    fig.suptitle("HK vs. Deffuant — bar metrics split by α/q condition", fontsize=12, y=1.02)
 
     for idx, (metric, ylabel) in enumerate(_HK_DEFFUANT_BAR_METRICS):
         ax = axes[idx // 2][idx % 2]
@@ -436,7 +434,7 @@ def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
         loc="lower center",
         ncol=len(handles),
         bbox_to_anchor=(0.5, -0.04),
-        fontsize=8,
+        fontsize=12,
         framealpha=0.9,
     )
     fig.tight_layout(rect=(0, 0.04, 1, 1))
@@ -449,7 +447,6 @@ def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
 def plot_hk_deffuant_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     """1×2 community-count vs modularity scatter for HK and Deffuant."""
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
-    fig.suptitle("HK vs. Deffuant — Community count vs Modularity", fontsize=12, y=1.02)
 
     for col, dyn in enumerate(_HK_DEFFUANT_DYN):
         _community_modularity_scatter(
@@ -468,7 +465,7 @@ def plot_hk_deffuant_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
         loc="lower center",
         ncol=len(handles),
         bbox_to_anchor=(0.5, -0.06),
-        fontsize=8,
+        fontsize=12,
         framealpha=0.9,
     )
     fig.tight_layout(rect=(0, 0.08, 1, 1))
@@ -544,7 +541,6 @@ def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
 def plot_voter_galam_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     """1×2 community-count vs modularity scatter for Voter and Galam."""
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
-    fig.suptitle("Voter vs. Galam — Community count vs Modularity", fontsize=12, y=1.02)
 
     for col, dyn in enumerate(_VOTER_GALAM_DYN):
         _community_modularity_scatter(
@@ -563,7 +559,7 @@ def plot_voter_galam_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
         loc="lower center",
         ncol=len(handles),
         bbox_to_anchor=(0.5, -0.06),
-        fontsize=8,
+        fontsize=12,
         framealpha=0.9,
     )
     fig.tight_layout(rect=(0, 0.08, 1, 1))
