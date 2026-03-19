@@ -39,15 +39,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Locate the smp_bindings package ──────────────────────────────────────────
 _REPO_ROOT = Path(__file__).resolve().parent.parent / "social-media-models"
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from smp_bindings import run_simulations, is_simulation_finished  # type: ignore # noqa: E402
-from scenarios import generate_scenarios, print_summary  # noqa: E402
+from smp_bindings import run_simulations, is_simulation_finished
+from scenarios import generate_scenarios, print_summary
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# region Paths
 _default_binary = _REPO_ROOT / "smp"
 _default_base = Path(__file__).resolve().parent / "run"
 
@@ -61,6 +58,7 @@ BASE_PATH = (
     if "SMP_BASE_PATH" in os.environ
     else str(_default_base)
 )
+# endregion
 
 
 def main() -> None:

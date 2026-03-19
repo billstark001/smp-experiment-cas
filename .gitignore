@@ -210,3 +210,5 @@ __marimo__/
 /run
 
 .DS_Store
+
+.vscode/settings.json

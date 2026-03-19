@@ -66,7 +66,7 @@ from plot_utils import (
 )
 
 
-# ── Subplot labeling ──────────────────────────────────────────────────────────
+# region Subplot labeling
 
 
 def _label_axes(axes_flat: List[Axes], start: int = 0) -> None:
@@ -85,7 +85,10 @@ def _label_axes(axes_flat: List[Axes], start: int = 0) -> None:
         )
 
 
-# ── Shared panel helpers ──────────────────────────────────────────────────────
+# endregion
+
+
+# region Shared panel helpers
 
 
 def _bar_panel(
@@ -269,7 +272,7 @@ def _community_modularity_scatter(
     """
     sub = df[df["dynamics"] == dynamics]
 
-    # ── First pass: collect every individual sample across all conditions ──────
+    # region First pass: collect every individual sample across all conditions
     all_data: List[Tuple[np.ndarray, np.ndarray, str, str, str]] = []
     for recsys in recsys_list:
         rsub = sub[sub["recsys"] == recsys]
@@ -284,16 +287,18 @@ def _community_modularity_scatter(
                 all_data.append(
                     (xs.loc[valid].values, ys.loc[valid].values, recsys, aq, repost)  # type: ignore
                 )
+    # endregion
 
     if not all_data:
         return
 
-    # ── Apply density-aware jitter to all points jointly ─────────────────────
+    # region Apply density-aware jitter to all points jointly
     all_xs = np.concatenate([d[0] for d in all_data])
     all_ys = np.concatenate([d[1] for d in all_data])
     all_xs_j = _apply_jitter(all_xs, all_ys)
+    # endregion
 
-    # ── Second pass: scatter with jittered x positions ────────────────────────
+    # region Second pass: scatter with jittered x positions
     ptr = 0
     for xs_vals, ys_vals, recsys, aq, repost in all_data:
         n = len(xs_vals)
@@ -324,6 +329,7 @@ def _community_modularity_scatter(
             edgecolors="white",
             zorder=3,
         )
+    # endregion
 
     ax.set_xlabel("Community count", fontsize=14)
     ax.set_ylabel("Modularity", fontsize=14)
@@ -363,7 +369,10 @@ def _build_legend_handles(recsys_list: List[str]) -> list:
     return handles
 
 
-# ── Figure 1a: HK vs Deffuant — bars v1 (1×4, aggregated over aq/repost) ────
+# endregion
+
+
+# region Figure 1a: HK vs Deffuant - bars v1 (1x4, aggregated over aq/repost)
 
 _HK_DEFFUANT_BAR_METRICS: List[Tuple[str, str]] = [
     ("log_convergence_time", r"Log-conv. time $\log(1+t^*)$"),
@@ -393,7 +402,10 @@ def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
 
     _label_axes(list(axes))
 
-    handles = [mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r]) for r in _HK_DEFFUANT_RECSYS]
+    handles = [
+        mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r])
+        for r in _HK_DEFFUANT_RECSYS
+    ]
     fig.legend(
         handles=handles,
         loc="lower center",
@@ -406,7 +418,10 @@ def plot_hk_deffuant_bars_v1(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     save_fig(fig, out_dir, "fig_hk_deffuant_bars_v1", fmt)
 
 
-# ── Figure 1b: HK vs Deffuant — bars v2 (2×2, 12 bars per subplot, split aq) ─
+# endregion
+
+
+# region Figure 1b: HK vs Deffuant - bars v2 (2x2, 12 bars per subplot, split aq)
 
 
 def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
@@ -428,7 +443,10 @@ def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
 
     _label_axes([axes[r][c] for r in range(2) for c in range(2)])
 
-    handles = [mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r]) for r in _HK_DEFFUANT_RECSYS]
+    handles = [
+        mpatches.Patch(color=RECSYS_COLOR[r], label=RECSYS_LABEL[r])
+        for r in _HK_DEFFUANT_RECSYS
+    ]
     fig.legend(
         handles=handles,
         loc="lower center",
@@ -441,7 +459,10 @@ def plot_hk_deffuant_bars_v2(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     save_fig(fig, out_dir, "fig_hk_deffuant_bars_v2", fmt)
 
 
-# ── Figure 2: HK vs Deffuant — community/modularity scatter ─────────────────
+# endregion
+
+
+# region Figure 2: HK vs Deffuant - community/modularity scatter
 
 
 def plot_hk_deffuant_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
@@ -472,7 +493,10 @@ def plot_hk_deffuant_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     save_fig(fig, out_dir, "fig_hk_deffuant_scatter", fmt)
 
 
-# ── Table 1: Voter vs Galam — LaTeX metrics table ────────────────────────────
+# endregion
+
+
+# region Table 1: Voter vs Galam - LaTeX metrics table
 
 _VOTER_GALAM_TABLE_METRICS: List[Tuple[str, str]] = [
     ("final_magnetization", r"Final magnetization $|\bar{x}|$"),
@@ -490,7 +514,7 @@ def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
     """
     lines: List[str] = []
 
-    # ── header ────────────────────────────────────────────────────────────────
+    # region Header
     n_metrics = len(_VOTER_GALAM_TABLE_METRICS)
     col_spec = "ll" + "r" * n_metrics
     lines.append(r"\begin{table}[htbp]")
@@ -505,8 +529,9 @@ def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
     )
     lines.append(f"    {header_cols} \\\\")
     lines.append(r"    \midrule")
+    # endregion
 
-    # ── data rows ─────────────────────────────────────────────────────────────
+    # region Data rows
     for dyn in _VOTER_GALAM_DYN:
         dsub = df[df["dynamics"] == dyn]
         for ri, recsys in enumerate(_VOTER_GALAM_RECSYS):
@@ -525,6 +550,7 @@ def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
             row = " & ".join([dyn_cell, rec_cell] + metric_cells)
             lines.append(f"    {row} \\\\")
         lines.append(r"    \addlinespace")
+    # endregion
 
     lines.append(r"    \bottomrule")
     lines.append(r"  \end{tabular}")
@@ -535,7 +561,10 @@ def make_voter_galam_table(df: pd.DataFrame, out_dir: Path) -> None:
     print(f"  Wrote table → {out_path}")
 
 
-# ── Figure 3: Voter vs Galam — community/modularity scatter ──────────────────
+# endregion
+
+
+# region Figure 3: Voter vs Galam - community/modularity scatter
 
 
 def plot_voter_galam_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
@@ -566,7 +595,10 @@ def plot_voter_galam_scatter(df: pd.DataFrame, out_dir: Path, fmt: str) -> None:
     save_fig(fig, out_dir, "fig_voter_galam_scatter", fmt)
 
 
-# ── CLI ────────────────────────────────────────────────────────────────────────
+# endregion
+
+
+# region CLI
 
 
 def main() -> None:
@@ -617,6 +649,9 @@ def main() -> None:
     plot_voter_galam_scatter(df, out_dir, args.format)
 
     print(f"\nDone.  5 outputs written to {args.out_dir}/")
+
+
+# endregion
 
 
 if __name__ == "__main__":

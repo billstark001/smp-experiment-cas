@@ -36,12 +36,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Locate smp_bindings ───────────────────────────────────────────────────────
-_REPO_ROOT = Path(__file__).resolve().parent.parent / "social-media-models"
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-from smp_bindings import RawSimulationRecord  # type: ignore[import]
+from smp_bindings import RawSimulationRecord
 
 from plot_utils import (
     setup_style,
@@ -54,14 +50,15 @@ from plot_utils import (
     DYNAMICS_LABEL,
 )
 
-# ── Default base path for raw simulation data ─────────────────────────────────
+# region Default base path for raw simulation data
 _default_base = (
     Path(os.path.expanduser(os.environ["SMP_BASE_PATH"])).resolve()
     if "SMP_BASE_PATH" in os.environ
     else Path(__file__).resolve().parent / "run"
 )
+# endregion
 
-# ── Three selection criteria ──────────────────────────────────────────────────
+# region Three selection criteria
 CRITERIA = [
     {"dynamics": "hk", "recsys": "structure_m9", "aq": "q_gt_a"},
     {"dynamics": "hk", "recsys": "opinion_m9", "aq": "q_gt_a"},
@@ -77,6 +74,8 @@ _TRACE_LW = 0.25
 _TRACE_ALPHA = 0.35
 
 _STEP_CAP = 0.5
+# endregion
+
 
 def _find_scenario(
     df: pd.DataFrame, dynamics: str, recsys: str, aq: str
@@ -140,7 +139,7 @@ def main(argv: list[str] | None = None) -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Build the figure: 1 row × 3 columns ──────────────────────────────────
+    # region Build the figure: 1 row x 3 columns
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
     fig.subplots_adjust(wspace=0.08)
 
@@ -203,6 +202,7 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     axes[0].set_ylabel("Opinion", fontsize=14)
+    # endregion
 
     save_fig(fig, out_dir, "fig_opinion_traces", args.format)
     print("Done.")

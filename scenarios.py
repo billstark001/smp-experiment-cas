@@ -31,7 +31,7 @@ Tolerance (continuous models only): 0.45
 from __future__ import annotations
 from typing import List, Dict, Any
 
-# ── Fixed simulation parameters ──────────────────────────────────────────────
+# region Fixed simulation parameters
 NODE_COUNT = 500
 NODE_FOLLOW_COUNT = 15
 POST_RETAIN_COUNT = 3
@@ -40,8 +40,9 @@ MAX_SIMULATION_STEP = 5000
 REPETITIONS = 40
 REPETITIONS_VOTER = 10  # Voter model is slower, so we can do fewer repetitions
 TOLERANCE = 0.45  # for HK and Deffuant
+# endregion
 
-# ── Parameter sweep axes ─────────────────────────────────────────────────────
+# region Parameter sweep axes
 ALPHA_Q_CONDITIONS: Dict[str, Dict[str, float]] = {
     "a_gt_q": {"Influence": 0.50, "RewiringRate": 0.05},  # α > q
     "q_gt_a": {"Influence": 0.05, "RewiringRate": 0.50},  # q > α
@@ -55,9 +56,10 @@ REPOST_CONDITIONS: Dict[str, float] = {
 # Recsys available per model class
 RECSYS_CONTINUOUS = ["Random", "StructureM9", "OpinionM9"]
 RECSYS_DISCRETE = ["Random", "StructureM9"]
+# endregion
 
 
-# ── Scenario builder ──────────────────────────────────────────────────────────
+# region Scenario builder
 def _make_scenario(
     dynamics: str,
     recsys: str,
@@ -126,6 +128,9 @@ def _make_scenario(
     return scenario
 
 
+# endregion
+
+
 def generate_scenarios() -> List[Dict[str, Any]]:
     """Return the full list of scenario dicts for the experiment."""
     scenarios: List[Dict[str, Any]] = []
@@ -139,7 +144,9 @@ def generate_scenarios() -> List[Dict[str, Any]]:
         for recsys in recsys_list:
             for aq_key in ALPHA_Q_CONDITIONS:
                 for p_key in REPOST_CONDITIONS:
-                    repetitions = REPETITIONS_VOTER if dynamics == "Voter" else REPETITIONS
+                    repetitions = (
+                        REPETITIONS_VOTER if dynamics == "Voter" else REPETITIONS
+                    )
                     for rep in range(repetitions):
                         scenarios.append(
                             _make_scenario(dynamics, recsys, aq_key, p_key, rep)

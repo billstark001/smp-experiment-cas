@@ -61,7 +61,7 @@ from plot_utils import (
 )
 
 
-# ── Local aliases to preserve internal call sites ─────────────────────────────
+# region Local aliases to preserve internal call sites
 def _setup_style() -> None:
     setup_style()
 
@@ -74,7 +74,10 @@ def _save(fig: Figure, out_dir: Path, name: str, fmt: str) -> None:
     save_fig(fig, out_dir, name, fmt)
 
 
-# ── Figure 1-4: Per-metric 2×2 overview ───────────────────────────────────────
+# endregion
+
+
+# region Figure 1-4: Per-metric 2x2 overview
 def plot_metric_overview(
     df: pd.DataFrame,
     metric: str,
@@ -140,7 +143,10 @@ def plot_metric_overview(
     _save(fig, out_dir, metric, fmt)
 
 
-# ── Figure 5: Recsys relative effect vs Random baseline ───────────────────────
+# endregion
+
+
+# region Figure 5: Recsys relative effect vs Random baseline
 def plot_recsys_delta(
     df: pd.DataFrame,
     out_dir: Path,
@@ -205,7 +211,10 @@ def plot_recsys_delta(
     _save(fig, out_dir, "recsys_delta", fmt)
 
 
-# ── Figure 6: Condition comparison ────────────────────────────────────────────
+# endregion
+
+
+# region Figure 6: Condition comparison
 def plot_condition_comparison(
     df: pd.DataFrame,
     out_dir: Path,
@@ -224,7 +233,7 @@ def plot_condition_comparison(
     bw = 0.32
     offsets = np.array([-bw / 2, bw / 2])
 
-    # ── Row 0: α/q condition ─────────────────────────────────────────────────
+    # region Row 0: alpha/q condition
     aq_handles = [
         mpatches.Patch(color=AQ_COLOR[a], label=AQ_LABEL[a]) for a in AQ_ORDER
     ]
@@ -252,8 +261,9 @@ def plot_condition_comparison(
         ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=12)
         if col == 0:
             ax.set_ylabel("Mean value")
+    # endregion
 
-    # ── Row 1: Repost rate ────────────────────────────────────────────────────
+    # region Row 1: Repost rate
     repost_handles = [
         mpatches.Patch(color=REPOST_COLOR[r], label=REPOST_LABEL[r])
         for r in REPOST_ORDER
@@ -282,6 +292,7 @@ def plot_condition_comparison(
         ax.set_xticklabels([DYNAMICS_LABEL[d] for d in DYNAMICS_ORDER], fontsize=12)
         if col == 0:
             ax.set_ylabel("Mean value")
+    # endregion
 
     # Row labels
     for row_idx, label in enumerate([r"$\alpha$/$q$ condition", "Repost rate"]):
@@ -314,7 +325,10 @@ def plot_condition_comparison(
     _save(fig, out_dir, "condition_comparison", fmt)
 
 
-# ── Figure 7: Summary heatmap ─────────────────────────────────────────────────
+# endregion
+
+
+# region Figure 7: Summary heatmap
 def plot_summary_heatmap(
     df: pd.DataFrame,
     out_dir: Path,
@@ -397,7 +411,10 @@ def plot_summary_heatmap(
     _save(fig, out_dir, "summary_heatmap", fmt)
 
 
-# ── CLI ────────────────────────────────────────────────────────────────────────
+# endregion
+
+
+# region CLI
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate publication-quality plots for CAS experiment results."
@@ -453,6 +470,9 @@ def main() -> None:
     plot_summary_heatmap(df, out_dir, args.format)
 
     print(f"\nDone.  7 figures written to {args.out_dir}/")
+
+
+# endregion
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.figure import Figure
 
-# ── Default paths ──────────────────────────────────────────────────────────────
+# region Default paths
 _script_dir = Path(__file__).resolve().parent
 
 from dotenv import load_dotenv
@@ -39,8 +39,9 @@ _default_out = (
     if "SMP_PLOTS_PATH" in os.environ
     else _script_dir / "run" / "plots"
 )
+# endregion
 
-# ── Academic style setup ───────────────────────────────────────────────────────
+# region Academic style setup
 _SERIF_PREF = [
     "Times New Roman",
     "Times",
@@ -93,7 +94,10 @@ def setup_style() -> None:
     )
 
 
-# ── Ordered sets & display labels ─────────────────────────────────────────────
+# endregion
+
+
+# region Ordered sets and display labels
 DYNAMICS_ORDER = ["hk", "deffuant", "galam", "voter"]
 DYNAMICS_LABEL = {
     "hk": "HK",
@@ -122,8 +126,9 @@ METRICS: List[Tuple[str, str]] = [
     ("final_magnetization", r"Final magnetization $|\bar{x}|$"),
     ("community_count", "Community count"),
 ]
+# endregion
 
-# ── Okabe–Ito colorblind-friendly palette ─────────────────────────────────────
+# region Okabe-Ito colorblind-friendly palette
 _OI = [
     "#E69F00",  # 0 orange
     "#56B4E9",  # 1 sky blue
@@ -147,8 +152,9 @@ REPOST_COLOR = {"p25": _OI[5], "p0": _OI[7]}
 # Markers for condition encoding in scatter plots
 AQ_MARKER = {"a_gt_q": "o", "q_gt_a": "s"}  # circle / square
 REPOST_ALPHA = {"p25": 0.90, "p0": 0.45}  # filled / faded
+# endregion
 
-# ── LMDB record key pattern ────────────────────────────────────────────────────
+# region LMDB record key pattern
 _NAME_RE = re.compile(
     r"^(?P<dynamics>hk|deffuant|galam|voter)"
     r"-(?P<recsys>random|structure_m9|opinion_m9)"
@@ -167,9 +173,10 @@ _ALL_NUMERIC_FIELDS = [
     "opinion_peak_count",
     "modularity",
 ]
+# endregion
 
 
-# ── Data loading ───────────────────────────────────────────────────────────────
+# region Data loading
 def load_dataframe(db_path: str) -> pd.DataFrame:
     """Load all LMDB stats records into a tidy pandas DataFrame.
 
@@ -207,7 +214,10 @@ def load_dataframe(db_path: str) -> pd.DataFrame:
     return df
 
 
-# ── Small helpers ──────────────────────────────────────────────────────────────
+# endregion
+
+
+# region Small helpers
 def mean_sem(series: pd.Series) -> Tuple[float, float]:
     """Return (mean, SEM) for a series, ignoring NaN."""
     vals = series.dropna()
@@ -222,3 +232,6 @@ def save_fig(fig: Figure, out_dir: Path, name: str, fmt: str) -> None:
     fig.savefig(out)
     print(f"  Saved: {out}")
     plt.close(fig)
+
+
+# endregion

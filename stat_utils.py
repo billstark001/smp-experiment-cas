@@ -13,7 +13,7 @@ import leidenalg
 import networkx as nx
 
 
-from smp_bindings import RawSimulationRecord  # type: ignore
+from smp_bindings import RawSimulationRecord
 
 
 def get_triads_stats(A: NDArray):

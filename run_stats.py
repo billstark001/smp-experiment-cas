@@ -30,7 +30,7 @@ from __future__ import annotations
 from stat_utils import compute_all_stats
 from scenarios import generate_scenarios
 
-from smp_bindings import (  # type: ignore[import]
+from smp_bindings import (
     RawSimulationRecord,
     is_simulation_finished,
 )
@@ -38,7 +38,11 @@ from smp_bindings import (  # type: ignore[import]
 import argparse
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed,
+    TimeoutError as FuturesTimeoutError,
+)
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -50,13 +54,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Locate the smp_bindings package ──────────────────────────────────────────
-_REPO_ROOT = Path(__file__).resolve().parent.parent / "social-media-models"
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 
-
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# region Paths
 _default_base = Path(__file__).resolve().parent / "run"
 _default_db = (
     Path(os.path.expanduser(os.environ["SMP_DB_PATH"])).resolve()
@@ -69,9 +68,10 @@ BASE_PATH = (
     if "SMP_BASE_PATH" in os.environ
     else str(_default_base)
 )
+# endregion
 
 
-# ── Worker ────────────────────────────────────────────────────────────────────
+# region Worker
 
 
 def _process_scenario(
@@ -97,7 +97,10 @@ def _process_scenario(
         return name, None
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# endregion
+
+
+# region Main
 
 
 def main() -> None:
@@ -150,7 +153,9 @@ def main() -> None:
                 if raw is not None:
                     pre_computed_map[s["UniqueName"]] = msgpack.unpackb(raw, raw=False)
         if pre_computed_map:
-            print(f"Incremental update   : {len(pre_computed_map)} entries with existing data")
+            print(
+                f"Incremental update   : {len(pre_computed_map)} entries with existing data"
+            )
 
     print(f"To process           : {len(to_process)}")
     if not to_process:
@@ -200,7 +205,9 @@ def main() -> None:
                     except FuturesTimeoutError:
                         scenario = futures[future]
                         name = scenario["UniqueName"]
-                        print(f"\n[WARN] {name}: timed out after 300 s", file=sys.stderr)
+                        print(
+                            f"\n[WARN] {name}: timed out after 300 s", file=sys.stderr
+                        )
                         bar.update()
                         err += 1
                         continue
@@ -213,6 +220,9 @@ def main() -> None:
 
     env.close()
     print(f"\nStored : {ok}   Errors : {err}")
+
+
+# endregion
 
 
 if __name__ == "__main__":
