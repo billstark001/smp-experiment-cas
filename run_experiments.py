@@ -119,6 +119,7 @@ def main() -> None:
         max_concurrent=args.concurrency,
         show_progress=None,  # auto-detect TTY
         skip_finished=True,
+        show_position=True,
     )
 
     print(f"\nDone. Ran {len(completed)} new simulation(s).")
